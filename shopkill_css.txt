@@ -1,0 +1,33 @@
+﻿"Phrases"
+{
+	"death"
+	{
+		"#format"	"{1:i}"			
+		"ru"		"{fullred}[NovaHunterZ - Shop]{white} Вы потеряли {green}{1} {white}кредитов."
+		"en"		"{fullred}[NovaHunterZ - Shop]{white} You have lost {green}{1} {white}credits."
+	}
+	"weapon_credits"
+	{
+		"#format"	"{1:s}, {2:i}"
+		"ru"		"{fullred}[NovaHunterZ - Shop]{white} Вы получили {green}{2}{white} кредитов за убийство с {green}{1}."
+		"en"		"{fullred}[NovaHunterZ - Shop]{white} You received {green}{2}{white} credits for killing with {green}{1}."
+	}
+	"headshot"
+	{
+		"#format"	"{1:i}"		
+		"ru"		"{fullred}[NovaHunterZ - Shop]{white} Вы получили {green}{1} {white}кредитов."
+		"en"		"{fullred}[NovaHunterZ - Shop]{white} You received {green}{1} {white}credits for headshots."
+	}
+	"knife"
+	{
+		"#format"	"{1:i}"		
+		"ru"		"{fullred}[NovaHunterZ - Shop]{white} Вы получили {green}{1} {white}кредитов за убийство с ножа."
+		"en"		"{fullred}[NovaHunterZ - Shop]{white} You received {green}{1} {white}credits for killing with a knife."
+	}
+        "infection"
+        {
+                "#format"	"{1:i}, {2:s}"		
+                "ru"		"{fullred}[NovaHunterZ - Магазин]{white} Вы получили {green}{1} {white}кредиты за заражение {magenta}{2}{default}."
+                "en"		"{fullred}[NovaHunterZ - Shop]{white} You received {green}{1} {white}credits for infecting {magenta}{2}{default}."
+        }
+}
