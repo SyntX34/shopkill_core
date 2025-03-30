@@ -13,21 +13,47 @@ Handle shopkill_wep;
 Handle shopkill_head;
 int	Infects[MAXPLAYERS+1];
 
-int chat = 0;
+ConVar g_cvPluginEnabled;
+ConVar g_cvChatEnabled;
+bool g_bPluginEnabled;
+bool g_bChatEnabled;
 
 public Plugin myinfo =
 {
     name            = "[Shop] Give Credits on Actions",
     author          = "+SyntX",
     description     = "Give credits to players for killing,infecting other players",
-    version         = "1.2",
+    version         = "1.3",
     url             = "https://steamcommunity.com/id/syntx34 && https://github.com/id/syntx34"
 };
 
 public void OnPluginStart()
 {
+    g_cvPluginEnabled = CreateConVar("sm_shopkill_enabled", "1", "Enable/disable the ShopKill plugin (1 = enable, 0 = disable)", _, true, 0.0, true, 1.0);
+    g_cvChatEnabled = CreateConVar("sm_shopkill_chat", "0", "Enable/disable chat messages (1 = enable, 0 = disable)", _, true, 0.0, true, 1.0);
+    
+    g_cvPluginEnabled.AddChangeHook(OnConVarChanged);
+    g_cvChatEnabled.AddChangeHook(OnConVarChanged);
+    
+    g_bPluginEnabled = g_cvPluginEnabled.BoolValue;
+    g_bChatEnabled = g_cvChatEnabled.BoolValue;
+    
     HookEvent("player_death", CallBacl_D, EventHookMode_Post);
     LoadTranslations("shopkill_css.txt");
+
+    AutoExecConfig(true, "shopkill_css");
+}
+
+public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+    if (convar == g_cvPluginEnabled)
+    {
+        g_bPluginEnabled = convar.BoolValue;
+    }
+    else if (convar == g_cvChatEnabled)
+    {
+        g_bChatEnabled = convar.BoolValue;
+    }
 }
 
 public APLRes AskPluginLoad2(Handle hMyself, bool bLate, char[] sError, int iErr_max) 
@@ -77,19 +103,21 @@ int GetConfigMin()
 
 void ShopKill_GiveCredits(int iClient, int count, int type, int id)
 {
+    if (!g_bPluginEnabled)
+        return;
+        
     KeyValues kv = new KeyValues("ShopKill");
 	char path[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, path, PLATFORM_MAX_PATH, "configs/shopkill.cfg");    
     if(kv.ImportFromFile(path))
     {
         kv.Rewind();
-        chat = kv.GetNum("Chat");    
         if(type == 2)
         {
             if(kv.GetNum("Death") > 0 && Shop_GetClientCredits(iClient) - kv.GetNum("Death") >= 0)
             {
                 Shop_TakeClientCredits(iClient, kv.GetNum("Death"));
-                if(chat == 1)
+                if(g_bChatEnabled)
                 {
                     CPrintToChat(iClient, "%t", "death", kv.GetNum("Death"));
                 }
@@ -111,7 +139,7 @@ void ShopKill_GiveCredits(int iClient, int count, int type, int id)
                         Shop_GiveClientCredits(iClient, count);                       
                     }
                 }
-                if(chat == 1)
+                if(g_bChatEnabled)
                 {
                     CPrintToChat(iClient, "%t", "headshot", count);
                 }                
@@ -134,7 +162,7 @@ void ShopKill_GiveCredits(int iClient, int count, int type, int id)
                                 case Plugin_Continue:
                                 {
                                     Shop_GiveClientCredits(iClient, def);
-                                    if(chat == 1)
+                                    if(g_bChatEnabled)
                                     {
                                         kv.GetString("name", buffer, 164);
                                         CPrintToChat(iClient, "%t", "weapon_credits", buffer, def);
@@ -143,7 +171,7 @@ void ShopKill_GiveCredits(int iClient, int count, int type, int id)
                                 case Plugin_Changed:
                                 {
                                     Shop_GiveClientCredits(iClient, count);                       
-                                    if(chat == 1)
+                                    if(g_bChatEnabled)
                                     {
                                         kv.GetString("name", buffer, 164);
                                         CPrintToChat(iClient, "%t", "weapon_credits", buffer, count);
@@ -159,7 +187,7 @@ void ShopKill_GiveCredits(int iClient, int count, int type, int id)
                         case Plugin_Continue:
                         {
                             Shop_GiveClientCredits(iClient, def);
-                            if(chat == 1)
+                            if(g_bChatEnabled)
                             {
                                 CPrintToChat(iClient, "%t", "knife", def);
                             }
@@ -167,7 +195,7 @@ void ShopKill_GiveCredits(int iClient, int count, int type, int id)
                         case Plugin_Changed:
                         {
                             Shop_GiveClientCredits(iClient, count);                       
-                            if(chat == 1)
+                            if(g_bChatEnabled)
                             {
                                CPrintToChat(iClient, "%t", "knife", count);
                             }                    
@@ -207,6 +235,9 @@ int GetPlayerInGameCount()
 
 public Action CallBacl_D(Event event, const char[] name, bool dontBroadcast)
 {
+    if (!g_bPluginEnabled)
+        return;
+        
     if(GetConfigMin() != -1 && GetPlayerInGameCount() >= GetConfigMin()){
         int victim = GetClientOfUserId(GetEventInt(event, "userid"));
         int attacker = GetClientOfUserId(GetEventInt(event, "attacker"));
@@ -255,11 +286,13 @@ public Action CallBacl_D(Event event, const char[] name, bool dontBroadcast)
             delete kv;
         }   
     }
-    
 }
 
 public Action ZR_OnClientInfect(int &client, int &attacker, bool &motherInfect, bool &respawnOverride, bool &respawn)
 {
+    if (!g_bPluginEnabled)
+        return Plugin_Continue;
+        
     if(client != -1 && attacker != -1)
     {
         if (!IsFakeClient(attacker))
@@ -273,13 +306,12 @@ public Action ZR_OnClientInfect(int &client, int &attacker, bool &motherInfect, 
             if(kv.ImportFromFile(path))
             {
                 int infectionCredits = kv.GetNum("Infection"); 
-                int chat = kv.GetNum("Chat");
 
                 if(infectionCredits > 0)
                 {
                     Shop_GiveClientCredits(attacker, infectionCredits);
 
-                    if(chat == 1)
+                    if(g_bChatEnabled)
                     {
                         char attackerName[64];
                         char victimName[64];
@@ -305,4 +337,3 @@ public Action ZR_OnClientInfect(int &client, int &attacker, bool &motherInfect, 
     
     return Plugin_Continue;
 }
-
