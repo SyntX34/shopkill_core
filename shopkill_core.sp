@@ -1,10 +1,12 @@
 #include <sourcemod>
 #include <shop>
-#include <zombiereloaded>
 #include <multicolors>
 #include <clientprefs>
 #include <vip_core>
-
+#undef REQUIRE_PLUGIN
+#include <zombiereloaded>
+#include <zriot>
+#define REQUIRE_PLUGIN
 #pragma tabsize 0
 
 #define Head 0
@@ -18,13 +20,21 @@ int	Infects[MAXPLAYERS+1];
 ConVar g_cvPluginEnabled;
 ConVar g_cvChatEnabled;
 ConVar g_cvVIPMultiplier;
+ConVar g_cvAccessMethod;
+ConVar g_cvAccessFlags;
+ConVar g_cvVipCoreRequiredFlag;
 bool g_bPluginEnabled;
 bool g_bChatEnabled;
 float g_fVIPMultiplier;
+int g_iAccessMethod;
+char g_sAccessFlags[32];
+bool g_bVipCoreRequired;
 
 bool g_bHasVIPCore = false;
 Handle g_hChatCookie;
 bool g_bClientChatEnabled[MAXPLAYERS+1] = {true, ...};
+bool g_bHasZombieReloaded = false;
+bool g_bHasZombieRiot = false;
 
 public Plugin myinfo =
 {
@@ -40,14 +50,23 @@ public void OnPluginStart()
     g_cvPluginEnabled = CreateConVar("sm_shopkill_enabled", "1", "Enable/disable the ShopKill plugin (1 = enable, 0 = disable)", _, true, 0.0, true, 1.0);
     g_cvChatEnabled = CreateConVar("sm_shopkill_chat", "0", "Enable/disable chat messages globally (1 = enable, 0 = disable)", _, true, 0.0, true, 1.0);
     g_cvVIPMultiplier = CreateConVar("sm_shopkill_vip_multiplier", "2.0", "Multiplier for VIP players (applied to all rewards)", _, true, 1.0, true, 10.0);
+	g_cvAccessMethod = CreateConVar("sm_shopkill_access_method", "1", "Access method: 1=Flags only, 2=Vip Core only, 3=Both (Flags OR Vip)", _, true, 1.0, true, 3.0);
+	g_cvAccessFlags = CreateConVar("sm_shopkill_access_flags", "o", "Flags required for access (if access_method is 1 or 3). Use standard SM flags (a-z)");
+	g_cvVipCoreRequiredFlag = CreateConVar("sm_shopkill_vipcore_required", "1", "Require VIP_Core for access method 2/3? 0=No, 1=Yes", _, true, 0.0, true, 1.0);
     
     g_cvPluginEnabled.AddChangeHook(OnConVarChanged);
     g_cvChatEnabled.AddChangeHook(OnConVarChanged);
     g_cvVIPMultiplier.AddChangeHook(OnConVarChanged);
+	g_cvAccessMethod.AddChangeHook(OnConVarChanged);
+	g_cvAccessFlags.AddChangeHook(OnConVarChanged);
+	g_cvVipCoreRequiredFlag.AddChangeHook(OnConVarChanged);
     
     g_bPluginEnabled = g_cvPluginEnabled.BoolValue;
     g_bChatEnabled = g_cvChatEnabled.BoolValue;
     g_fVIPMultiplier = g_cvVIPMultiplier.FloatValue;
+	g_iAccessMethod = g_cvAccessMethod.IntValue;
+	g_cvAccessFlags.GetString(g_sAccessFlags, sizeof(g_sAccessFlags));
+	g_bVipCoreRequired = g_cvVipCoreRequiredFlag.BoolValue;
     
     g_hChatCookie = RegClientCookie("shopkill_chat", "ShopKill Chat Preferences", CookieAccess_Private);
     
@@ -59,6 +78,7 @@ public void OnPluginStart()
     RegConsoleCmd("sm_shopkillprefs", Command_ShowPreferences, "Show ShopKill preferences");
 
     AutoExecConfig(true);
+	CreateTimer(0.5, Timer_DetectPlugins, _, TIMER_FLAG_NO_MAPCHANGE);
 }
 
 public Action Command_ChatToggle(int client, int args)
@@ -128,35 +148,54 @@ public void OnClientDisconnect(int client)
     g_bClientChatEnabled[client] = true;
 }
 
+public Action Timer_DetectPlugins(Handle timer)
+{
+    DetectPlugins();
+    return Plugin_Stop;
+}
+
+void DetectPlugins()
+{
+    g_bHasVIPCore = LibraryExists("vip_core");
+    g_bHasZombieReloaded = LibraryExists("zombiereloaded");
+    g_bHasZombieRiot = LibraryExists("ZombieRiot");
+    
+    PrintToServer("[ShopKill] Plugin detection: VIP=%d, ZR=%d, ZRiot=%d", 
+        g_bHasVIPCore, g_bHasZombieReloaded, g_bHasZombieRiot);
+}
+
 public void OnAllPluginsLoaded()
 {
     g_bHasVIPCore = LibraryExists("vip_core");
+    g_bHasZombieReloaded = LibraryExists("zombiereloaded");
+    g_bHasZombieRiot = LibraryExists("ZombieRiot");
+    
     if (g_bHasVIPCore)
-    {
-        PrintToServer("[ShopKill] VIP Core detected. VIP multiplier will be applied.");
-    }
-    else
-    {
-        PrintToServer("[ShopKill] VIP Core not found. Using config value for VIP multiplier.");
-    }
+        PrintToServer("[ShopKill] VIP Core detected.");
+    if (g_bHasZombieReloaded)
+        PrintToServer("[ShopKill] Zombie:Reloaded detected.");
+    if (g_bHasZombieRiot)
+        PrintToServer("[ShopKill] Zombie:Riot detected.");
 }
 
 public void OnLibraryAdded(const char[] name)
 {
     if (StrEqual(name, "vip_core"))
-    {
         g_bHasVIPCore = true;
-        PrintToServer("[ShopKill] VIP Core loaded.");
-    }
+    else if (StrEqual(name, "zombiereloaded"))
+        g_bHasZombieReloaded = true;
+    else if (StrEqual(name, "ZombieRiot"))
+        g_bHasZombieRiot = true;
 }
 
 public void OnLibraryRemoved(const char[] name)
 {
     if (StrEqual(name, "vip_core"))
-    {
         g_bHasVIPCore = false;
-        PrintToServer("[ShopKill] VIP Core unloaded.");
-    }
+    else if (StrEqual(name, "zombiereloaded"))
+        g_bHasZombieReloaded = false;
+    else if (StrEqual(name, "ZombieRiot"))
+        g_bHasZombieRiot = false;
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -172,6 +211,18 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
     else if (convar == g_cvVIPMultiplier)
     {
         g_fVIPMultiplier = convar.FloatValue;
+    }
+    else if (convar == g_cvAccessMethod)
+    {
+        g_iAccessMethod = g_cvAccessMethod.IntValue;
+    }
+    else if (convar == g_cvAccessFlags)
+    {
+        g_cvAccessFlags.GetString(g_sAccessFlags, sizeof(g_sAccessFlags));
+    }
+    else if (convar == g_cvVipCoreRequiredFlag)
+    {
+        g_bVipCoreRequired = g_cvVipCoreRequiredFlag.BoolValue;
     }
 }
 
@@ -238,13 +289,58 @@ float GetConfigVIPMultiplier()
 
 bool IsVIP(int client)
 {
-    if (!g_bHasVIPCore)
-    {
+    if (!IsValidClient(client))
         return false;
-    }
+
+    if (GetUserFlagBits(client) & ADMFLAG_ROOT)
+        return true;
     
-    char feature[64] = "VIPFeatures";
-    return VIP_IsClientVIP(client) && VIP_IsClientFeatureUse(client, feature);
+    bool bHasFlagAccess = false;
+    bool bHasVipCoreAccess = false;
+    if (g_iAccessMethod == 1 || g_iAccessMethod == 3)
+    {
+        int flagCount = strlen(g_sAccessFlags);
+        if (flagCount > 0)
+        {
+            for (int i = 0; i < flagCount; i++)
+            {
+                AdminFlag flag;
+                if (FindFlagByChar(g_sAccessFlags[i], flag))
+                {
+                    if (CheckCommandAccess(client, "sm_shopkill_access", flag, true))
+                    {
+                        bHasFlagAccess = true;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        if (!bHasFlagAccess && flagCount == 0)
+        {
+            bHasFlagAccess = CheckCommandAccess(client, "sm_shopkill_access", ADMFLAG_CUSTOM1, true);
+        }
+    }
+    if ((g_iAccessMethod == 2 || g_iAccessMethod == 3) && g_bHasVIPCore)
+    {
+        char feature[64] = "VIPFeatures";
+        bHasVipCoreAccess = VIP_IsClientVIP(client) && VIP_IsClientFeatureUse(client, feature);
+    }
+    else if ((g_iAccessMethod == 2 || g_iAccessMethod == 3) && !g_bHasVIPCore && g_bVipCoreRequired)
+    {
+        bHasVipCoreAccess = false;
+    }
+    else if ((g_iAccessMethod == 2 || g_iAccessMethod == 3) && !g_bHasVIPCore && !g_bVipCoreRequired)
+    {
+        bHasVipCoreAccess = false;
+    }
+    switch (g_iAccessMethod)
+    {
+        case 1: return bHasFlagAccess;
+        case 2: return bHasVipCoreAccess;
+        case 3: return (bHasFlagAccess || bHasVipCoreAccess);
+        default: return false;
+    }
 }
 
 bool ShouldShowChat(int client)
@@ -507,65 +603,56 @@ public Action CallBacl_D(Event event, const char[] name, bool dontBroadcast)
 
 public Action ZR_OnClientInfect(int &client, int &attacker, bool &motherInfect, bool &respawnOverride, bool &respawn)
 {
-    if (!g_bPluginEnabled)
+    if (!g_bHasZombieReloaded)
         return Plugin_Continue;
+    HandleInfection(client, attacker);
+    return Plugin_Continue;
+}
+
+void HandleInfection(int client, int attacker)
+{
+    if (!g_bPluginEnabled)
+        return;
         
-    if(client != -1 && attacker != -1)
+    if(client != -1 && attacker != -1 && IsValidClient(attacker) && !IsFakeClient(attacker))
     {
-        if (!IsFakeClient(attacker))
+        ++Infects[attacker];
+        
+        KeyValues kv = new KeyValues("ShopKill");
+        char path[PLATFORM_MAX_PATH];
+        BuildPath(Path_SM, path, PLATFORM_MAX_PATH, "configs/shopkill.cfg");
+
+        if(kv.ImportFromFile(path))
         {
-            ++Infects[attacker];
+            int infectionCredits = kv.GetNum("Infection", 1);
+            float configVIPMultiplier = kv.GetFloat("VIPMultiplier", 2.0);
             
-            KeyValues kv = new KeyValues("ShopKill");
-            char path[PLATFORM_MAX_PATH];
-            BuildPath(Path_SM, path, PLATFORM_MAX_PATH, "configs/shopkill.cfg");
+            bool bIsVIP = IsVIP(attacker);
+            float fMultiplier = bIsVIP ? configVIPMultiplier : 1.0;
+            
+            int finalCredits = RoundFloat(float(infectionCredits) * fMultiplier);
+            bool bShowChat = ShouldShowChat(attacker);
 
-            if(kv.ImportFromFile(path))
+            if(finalCredits > 0)
             {
-                int infectionCredits = kv.GetNum("Infection", 1);
-                float configVIPMultiplier = kv.GetFloat("VIPMultiplier", 2.0);
-                
-                bool bIsVIP = IsVIP(attacker);
-                float fMultiplier = bIsVIP ? configVIPMultiplier : 1.0;
-                
-                int finalCredits = RoundFloat(float(infectionCredits) * fMultiplier);
-                
-                bool bShowChat = ShouldShowChat(attacker);
+                Shop_GiveClientCredits(attacker, finalCredits);
 
-                if(finalCredits > 0)
+                if(bShowChat)
                 {
-                    Shop_GiveClientCredits(attacker, finalCredits);
+                    char victimName[64];
+                    GetClientName(client, victimName, sizeof(victimName));
 
-                    if(bShowChat)
+                    if (bIsVIP && finalCredits != infectionCredits)
                     {
-                        char attackerName[64];
-                        char victimName[64];
-                        GetClientName(attacker, attackerName, sizeof(attackerName));
-                        GetClientName(client, victimName, sizeof(victimName));
-
-                        if (bIsVIP && finalCredits != infectionCredits)
-                        {
-                            CPrintToChat(attacker, "%t", "infection_vip", finalCredits, victimName, infectionCredits, fMultiplier);
-                        }
-                        else
-                        {
-                            CPrintToChat(attacker, "%t", "infection", finalCredits, victimName);
-                        }
+                        CPrintToChat(attacker, "%t", "infection_vip", finalCredits, victimName, infectionCredits, fMultiplier);
+                    }
+                    else
+                    {
+                        CPrintToChat(attacker, "%t", "infection", finalCredits, victimName);
                     }
                 }
             }
-            else
-            {
-                PrintToServer("Shopkill config is missing");
-            }
-
-            delete kv;
         }
-        else
-        {
-            PrintToServer("Credits not given for infecting by bot.");
-        }
+        delete kv;
     }
-    
-    return Plugin_Continue;
 }
