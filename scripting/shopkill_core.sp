@@ -113,12 +113,11 @@ public void OnPluginStart()
     g_hColorModeCookie = new Cookie("shopkill_hud_colormode", "ShopKill HUD Color Choice (-1=Random, -2=Custom, 0..49=Palette)", CookieAccess_Private);
     g_hCustomColorCookie = new Cookie("shopkill_hud_customcolor", "ShopKill Custom HUD Color String", CookieAccess_Private);
 
-    SetCookieMenuItem(ShopKillCookieMenuHandler, 0, "ShopKill Notifications");
+    SetCookieMenuItem(ShopKillCookieMenuHandler, 0, "ShopKill Settings");
     
     HookEvent("player_death", CallBacl_D, EventHookMode_Post);
     LoadTranslations("shopkill_css.txt");
     
-    RegConsoleCmd("sm_settings", Command_Settings, "Open player settings menu");
     RegConsoleCmd("sm_shopkillchat", Command_ChatToggle, "Toggle ShopKill notifications");
     RegConsoleCmd("sm_skchat", Command_ChatToggle, "Toggle ShopKill notifications");
     RegConsoleCmd("sm_shopkillprefs", Command_ShowPreferences, "Show ShopKill preferences");
@@ -127,26 +126,15 @@ public void OnPluginStart()
     CreateTimer(0.5, Timer_DetectPlugins, _, TIMER_FLAG_NO_MAPCHANGE);
 }
 
-public Action Command_Settings(int client, int args)
-{
-    if (!IsValidClient(client))
-        return Plugin_Handled;
-
-    ShowSettingsMenu(client);
-    return Plugin_Handled;
-}
-
 public void ShopKillCookieMenuHandler(int client, CookieMenuAction action, any info, char[] buffer, int maxlen)
 {
     if (action == CookieMenuAction_SelectOption)
     {
-        ShowNotificationMenu(client);
+        ShowSettingsMenu(client);
     }
     else if (action == CookieMenuAction_DisplayOption)
     {
-        char modeName[64];
-        GetNotificationModeName(client, g_iClientNotifyMode[client], modeName, sizeof(modeName));
-        Format(buffer, maxlen, "%T", "cookie_menu_display", client, modeName);
+        Format(buffer, maxlen, "%T", "cookie_menu_display", client);
     }
 }
 

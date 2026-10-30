@@ -54,7 +54,7 @@ shopkill_core/
 
 | Command | Description |
 |---|---|
-| `!settings` / `sm_settings` | Opens the player settings menu to choose notification style and HUD color. |
+| `!settings` / `sm_settings` | Core ClientPrefs settings menu listing plugin options (including ShopKill Settings). |
 | `!skchat` / `!shopkillchat` | Cycles through notification modes (Chat -> Console -> HUD -> Off). |
 | `!shopkillprefs` | Displays active reward preferences, HUD color, and VIP status. |
 
