@@ -50,13 +50,11 @@ Handle shopkill_head;
 int	Infects[MAXPLAYERS+1];
 
 ConVar g_cvPluginEnabled;
-ConVar g_cvChatEnabled;
 ConVar g_cvVIPMultiplier;
 ConVar g_cvAccessMethod;
 ConVar g_cvAccessFlags;
 ConVar g_cvVipCoreRequiredFlag;
 bool g_bPluginEnabled;
-bool g_bChatEnabled;
 int g_iAccessMethod;
 char g_sAccessFlags[32];
 bool g_bVipCoreRequired;
@@ -90,21 +88,18 @@ public void OnPluginStart()
     g_hHudSync = CreateHudSynchronizer();
 
     g_cvPluginEnabled = CreateConVar("sm_shopkill_enabled", "1", "Enable/disable the ShopKill plugin (1 = enable, 0 = disable)", _, true, 0.0, true, 1.0);
-    g_cvChatEnabled = CreateConVar("sm_shopkill_chat", "1", "Enable/disable chat messages globally (1 = enable, 0 = disable)", _, true, 0.0, true, 1.0);
     g_cvVIPMultiplier = CreateConVar("sm_shopkill_vip_multiplier", "2.0", "Multiplier for VIP players (applied to all rewards)", _, true, 1.0, true, 10.0);
     g_cvAccessMethod = CreateConVar("sm_shopkill_access_method", "1", "Access method: 1=Flags only, 2=Vip Core only, 3=Both (Flags OR Vip)", _, true, 1.0, true, 3.0);
     g_cvAccessFlags = CreateConVar("sm_shopkill_access_flags", "o", "Flags required for access (if access_method is 1 or 3). Use standard SM flags (a-z)");
     g_cvVipCoreRequiredFlag = CreateConVar("sm_shopkill_vipcore_required", "1", "Require VIP_Core for access method 2/3? 0=No, 1=Yes", _, true, 0.0, true, 1.0);
     
     g_cvPluginEnabled.AddChangeHook(OnConVarChanged);
-    g_cvChatEnabled.AddChangeHook(OnConVarChanged);
     g_cvVIPMultiplier.AddChangeHook(OnConVarChanged);
     g_cvAccessMethod.AddChangeHook(OnConVarChanged);
     g_cvAccessFlags.AddChangeHook(OnConVarChanged);
     g_cvVipCoreRequiredFlag.AddChangeHook(OnConVarChanged);
     
     g_bPluginEnabled = g_cvPluginEnabled.BoolValue;
-    g_bChatEnabled = g_cvChatEnabled.BoolValue;
     g_iAccessMethod = g_cvAccessMethod.IntValue;
     g_cvAccessFlags.GetString(g_sAccessFlags, sizeof(g_sAccessFlags));
     g_bVipCoreRequired = g_cvVipCoreRequiredFlag.BoolValue;
@@ -532,9 +527,6 @@ public Action Command_ShowPreferences(int client, int args)
     char modeName[64];
     GetNotificationModeName(client, g_iClientNotifyMode[client], modeName, sizeof(modeName));
 
-    char statusScope[64];
-    Format(statusScope, sizeof(statusScope), "%T", g_bChatEnabled ? "status_globally_enabled" : "status_globally_disabled", client);
-
     char colorDesc[64];
     GetActiveColorName(client, colorDesc, sizeof(colorDesc));
 
@@ -542,7 +534,7 @@ public Action Command_ShowPreferences(int client, int args)
     Format(vipStatus, sizeof(vipStatus), "%T", bIsVIP ? "yes" : "no", client);
 
     CPrintToChat(client, "%t", "prefs_header");
-    CPrintToChat(client, "%t", "prefs_notify", modeName, statusScope);
+    CPrintToChat(client, "%t", "prefs_notify", modeName);
     CPrintToChat(client, "%t", "prefs_hud_color", colorDesc);
     CPrintToChat(client, "%t", "prefs_vip_status", vipStatus);
     
@@ -660,10 +652,6 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
     if (convar == g_cvPluginEnabled)
     {
         g_bPluginEnabled = convar.BoolValue;
-    }
-    else if (convar == g_cvChatEnabled)
-    {
-        g_bChatEnabled = convar.BoolValue;
     }
     else if (convar == g_cvVIPMultiplier)
     {
@@ -870,7 +858,7 @@ void GetClientHudColor(int client, int &r, int &g, int &b, int &a)
 
 void DispatchCreditNotification(int client, const char[] phraseFormat, any ...)
 {
-    if (!g_bChatEnabled || !IsValidClient(client))
+    if (!IsValidClient(client))
         return;
 
     int mode = g_iClientNotifyMode[client];

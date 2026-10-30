@@ -61,7 +61,6 @@ shopkill_core/
 ## ConVars
 
 - `sm_shopkill_enabled` (default `1`): Enable/disable the plugin.
-- `sm_shopkill_chat` (default `1`): Global toggle for credit notifications.
 - `sm_shopkill_vip_multiplier` (default `2.0`): Multiplier applied to VIP players.
 - `sm_shopkill_access_method` (default `1`): Access check method (`1` = Flags, `2` = VIP Core, `3` = Both).
 - `sm_shopkill_access_flags` (default `o`): Admin flag required for VIP status when using flags.
