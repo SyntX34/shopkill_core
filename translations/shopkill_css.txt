@@ -625,4 +625,19 @@
 		"jp"		"{green}[ShopKill]{default} HUDの色が {lightgreen}{1}{default} に設定されました。"
 		"ko"		"{green}[ShopKill]{default} HUD 색상이 {lightgreen}{1}{default}(으)로 설정되었습니다."
 	}
+	"advert_message"
+	{
+		"en"		"{green}[ShopKill]{default} Want to change or disable credit notifications? Type {lightgreen}!settings{default} and go to \"{green}ShopKill Settings{default}\" or {lightgreen}!skchat{default}."
+		"de"		"{green}[ShopKill]{default} Möchtest du Kredit-Benachrichtigungen ändern oder ausschalten? Tippe {lightgreen}!settings{default} und gehe zu \"{green}ShopKill Einstellungen{default}\" oder {lightgreen}!skchat{default}."
+		"da"		"{green}[ShopKill]{default} Vil du ændre eller deaktivere kreditnotifikationer? Skriv {lightgreen}!settings{default} og gå til \"{green}ShopKill Indstillinger{default}\" eller {lightgreen}!skchat{default}."
+		"es"		"{green}[ShopKill]{default} ¿Quieres cambiar o desactivar las notificaciones de créditos? Escribe {lightgreen}!settings{default} y ve a \"{green}Configuración de ShopKill{default}\" o {lightgreen}!skchat{default}."
+		"fr"		"{green}[ShopKill]{default} Vous souhaitez modifier ou désactiver les notifications de crédits ? Tapez {lightgreen}!settings{default} et allez dans \"{green}Paramètres ShopKill{default}\" ou {lightgreen}!skchat{default}."
+		"fi"		"{green}[ShopKill]{default} Haluatko muuttaa tai poistaa käytöstä krediitti-ilmoitukset? Kirjoita {lightgreen}!settings{default} ja mene kohtaan \"{green}ShopKill-asetukset{default}\" tai {lightgreen}!skchat{default}."
+		"hu"		"{green}[ShopKill]{default} Szeretnéd módosítani vagy letiltani a kredit értesítéseket? Írd be a {lightgreen}!settings{default} parancsot, majd nyisd meg a \"{green}ShopKill Beállítások{default}\" menüt vagy használd a {lightgreen}!skchat{default} parancsot."
+		"ru"		"{green}[ShopKill]{default} Хотите изменить или отключить уведомления о кредитах? Напишите {lightgreen}!settings{default} и выберите \"{green}Настройки ShopKill{default}\" или {lightgreen}!skchat{default}."
+		"chi"		"{green}[ShopKill]{default} 想要更改或关闭积分提示？输入 {lightgreen}!settings{default} 并前往 \"{green}ShopKill 设置{default}\" 或输入 {lightgreen}!skchat{default}."
+		"zho"		"{green}[ShopKill]{default} 想要變更或關閉積分提示？輸入 {lightgreen}!settings{default} 並前往 \"{green}ShopKill 設定{default}\" 或輸入 {lightgreen}!skchat{default}."
+		"jp"		"{green}[ShopKill]{default} クレジット通知を変更または無効化したいですか？ {lightgreen}!settings{default} を入力して \"{green}ShopKill 設定{default}\" を選ぶか、{lightgreen}!skchat{default} を使用してください。"
+		"ko"		"{green}[ShopKill]{default} 크레딧 알림을 변경하거나 끄고 싶으신가요? {lightgreen}!settings{default} 입력 후 \"{green}ShopKill 설정{default}\"으로 이동하거나 {lightgreen}!skchat{default}을(를) 입력하세요."
+	}
 }

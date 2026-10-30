@@ -54,10 +54,12 @@ ConVar g_cvVIPMultiplier;
 ConVar g_cvAccessMethod;
 ConVar g_cvAccessFlags;
 ConVar g_cvVipCoreRequiredFlag;
+ConVar g_cvAdvertInterval;
 bool g_bPluginEnabled;
 int g_iAccessMethod;
 char g_sAccessFlags[32];
 bool g_bVipCoreRequired;
+Handle g_hAdvertTimer;
 
 bool g_bHasVIPCore = false;
 Cookie g_hNotifyCookie;
@@ -92,12 +94,14 @@ public void OnPluginStart()
     g_cvAccessMethod = CreateConVar("sm_shopkill_access_method", "1", "Access method: 1=Flags only, 2=Vip Core only, 3=Both (Flags OR Vip)", _, true, 1.0, true, 3.0);
     g_cvAccessFlags = CreateConVar("sm_shopkill_access_flags", "o", "Flags required for access (if access_method is 1 or 3). Use standard SM flags (a-z)");
     g_cvVipCoreRequiredFlag = CreateConVar("sm_shopkill_vipcore_required", "1", "Require VIP_Core for access method 2/3? 0=No, 1=Yes", _, true, 0.0, true, 1.0);
+    g_cvAdvertInterval = CreateConVar("sm_shopkill_advert_interval", "180.0", "Interval in seconds to broadcast notification settings advert (0.0 = disabled)", _, true, 0.0, true, 3600.0);
     
     g_cvPluginEnabled.AddChangeHook(OnConVarChanged);
     g_cvVIPMultiplier.AddChangeHook(OnConVarChanged);
     g_cvAccessMethod.AddChangeHook(OnConVarChanged);
     g_cvAccessFlags.AddChangeHook(OnConVarChanged);
     g_cvVipCoreRequiredFlag.AddChangeHook(OnConVarChanged);
+    g_cvAdvertInterval.AddChangeHook(OnConVarChanged);
     
     g_bPluginEnabled = g_cvPluginEnabled.BoolValue;
     g_iAccessMethod = g_cvAccessMethod.IntValue;
@@ -119,6 +123,7 @@ public void OnPluginStart()
 
     AutoExecConfig(true);
     CreateTimer(0.5, Timer_DetectPlugins, _, TIMER_FLAG_NO_MAPCHANGE);
+    RestartAdvertTimer();
 }
 
 public void ShopKillCookieMenuHandler(int client, CookieMenuAction action, any info, char[] buffer, int maxlen)
@@ -669,6 +674,40 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
     {
         g_bVipCoreRequired = g_cvVipCoreRequiredFlag.BoolValue;
     }
+    else if (convar == g_cvAdvertInterval)
+    {
+        RestartAdvertTimer();
+    }
+}
+
+void RestartAdvertTimer()
+{
+    if (g_hAdvertTimer != null)
+    {
+        KillTimer(g_hAdvertTimer);
+        g_hAdvertTimer = null;
+    }
+
+    float interval = g_cvAdvertInterval.FloatValue;
+    if (interval > 0.0)
+    {
+        g_hAdvertTimer = CreateTimer(interval, Timer_BroadcastAdvert, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+    }
+}
+
+public Action Timer_BroadcastAdvert(Handle timer)
+{
+    if (!g_bPluginEnabled)
+        return Plugin_Continue;
+
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (IsValidClient(i))
+        {
+            CPrintToChat(i, "%t", "advert_message");
+        }
+    }
+    return Plugin_Continue;
 }
 
 public APLRes AskPluginLoad2(Handle hMyself, bool bLate, char[] sError, int iErr_max) 

@@ -65,6 +65,7 @@ shopkill_core/
 - `sm_shopkill_access_method` (default `1`): Access check method (`1` = Flags, `2` = VIP Core, `3` = Both).
 - `sm_shopkill_access_flags` (default `o`): Admin flag required for VIP status when using flags.
 - `sm_shopkill_vipcore_required` (default `1`): Require VIP Core when using VIP Core access.
+- `sm_shopkill_advert_interval` (default `180.0`): Interval in seconds to broadcast the notification settings advertisement in chat (`0.0` = disabled).
 
 ## License
 
