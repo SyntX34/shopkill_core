@@ -1,0 +1,109 @@
+name: CI & Release
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Release tag (leave blank to auto-detect from plugin source)'
+        required: false
+        default: ''
+
+jobs:
+  build:
+    name: Build Plugin
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup SourcePawn Compiler
+        uses: rumblefrog/setup-sp@master
+        with:
+          version: '1.12.x'
+
+      - name: Compile Plugins
+        run: |
+          mkdir -p plugins
+          spcomp -w204 -O2 -v2 -i"scripting/include" scripting/shopkill_core.sp -o"plugins/shopkill_core.smx" || \
+          spcomp -w204 -O2 -v2 scripting/shopkill_core.sp -o"plugins/shopkill_core.smx" || true
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: shopkill-package
+          path: |
+            plugins/
+            scripting/
+            configs/
+            translations/
+
+  release:
+    name: Publish Release
+    needs: build
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: shopkill-package
+          path: package/
+
+      - name: Determine Version
+        id: version
+        run: |
+          if [ -n "${{ github.event.inputs.tag_name }}" ]; then
+            TAG="${{ github.event.inputs.tag_name }}"
+          else
+            DETECTED=$(grep -oP 'version\s*=\s*"\K[^"]+' scripting/shopkill_core.sp | head -n 1)
+            if [ -z "$DETECTED" ]; then
+              TAG="v1.0.0"
+            else
+              TAG="v${DETECTED}"
+            fi
+          fi
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+
+      - name: Generate Changelog
+        id: changelog
+        run: |
+          PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
+          if [ -z "$PREV_TAG" ]; then
+            COMMITS=$(git log --pretty=format:"* [%h](https://github.com/${{ github.repository }}/commit/%H) - %s ([@%an](https://github.com/%an))")
+          else
+            COMMITS=$(git log ${PREV_TAG}..HEAD --pretty=format:"* [%h](https://github.com/${{ github.repository }}/commit/%H) - %s ([@%an](https://github.com/%an))")
+          fi
+          echo "CHANGELOG<<EOF" >> $GITHUB_ENV
+          echo "$COMMITS" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Create Zip Package
+        run: |
+          cd package
+          zip -r ../shopkill_core-${{ steps.version.outputs.tag }}.zip ./*
+          cd ..
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Release ${{ steps.version.outputs.tag }}
+          body: |
+            ## Changes in ${{ steps.version.outputs.tag }}
+            ${{ env.CHANGELOG }}
+          files: |
+            shopkill_core-${{ steps.version.outputs.tag }}.zip
+

@@ -1,0 +1,4 @@
+*.dll
+nul
+*.so
+*.cache
